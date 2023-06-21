@@ -71,31 +71,34 @@ class SEPBlock(tf.keras.layers.Layer):
         x_pruned = self.pruning_block([x, x_stat])
         output = inputs + x_pruned
         return output
+def get_model(outputs:int=2)->tf.keras.Model:
+    Inputs = tf.keras.Input(shape=(224,224,3))
+    x = ConvolutionBlock(64,(7,7),(2,2),padding='same' , name = 'Conv1')(Inputs)
+    x = tf.keras.layers.MaxPooling2D((3, 3), strides=(2, 2), padding='same')(x)
+    x = ConvolutionBlock(64,(1,1),strides=(1,1),padding='same',name='Conv2a')(x)
+    x = ConvolutionBlock(192,(3,3),strides=(1,1),padding='same',name='Conv2b')(x)
+    x = tf.keras.layers.MaxPooling2D((3, 3), strides=(2, 2), padding='same')(x)
+    x = InceptionV1Block([64,96,128,16,32,32],name='Inception3a')(x) # 3a
+    x = SEPBlock(name='SEP3a')(x)  # 3a
+    x = InceptionV1Block([128,128,192,32,96,64],name='Inception3b')(x) # 3b
+    x = SEPBlock(name='SEP3b')(x) # 3b
+    x = tf.keras.layers.MaxPooling2D((3, 3), strides=(2, 2), padding='same')(x)
+    x = InceptionV1Block([192,96,208,6,48,64],name='Inception4a')(x) # 4a
+    x = SEPBlock(name='SEP4a')(x) # 4a
+    x = InceptionV1Block([160,112,224,24,64,64],name='Inception4b')(x) # 4b
+    _4bx = SEPBlock(name='SEP4b')(x) # 4b
+    x = InceptionV1Block([128,128,256,24,64,64],name='Inception4c')(_4bx) # 4c
+    _4cx = SEPBlock(name='SEP4c')(x) # 4c
+    x = InceptionV1Block([112,144,288,32,64,64],name='Inception4d')(_4cx) # 4d
+    x = SEPBlock(name='SEP4d')(x) # 4d
+    x = InceptionV1Block([256,160,320,32,128,128],name='Inception4e')(x) # 4e
+    x = SEPBlock(name='SEP4e')(x) # 4e
+    x = tf.concat([x,_4bx,_4cx],axis=-1)
+    x = tf.keras.layers.MaxPooling2D((3, 3), strides=(2, 2), padding='same')(x)
+    x = tf.keras.layers.GlobalAveragePooling2D()(x)
+    x = tf.keras.layers.Dense(outputs,activation='softmax',name='classifier')(x)
+    model = tf.keras.Model(inputs=Inputs, outputs=x)
+    model.summary()
 
-Inputs = tf.keras.Input(shape=(224,224,3))
-x = ConvolutionBlock(64,(7,7),(2,2),padding='same' , name = 'Conv1')(Inputs)
-x = tf.keras.layers.MaxPooling2D((3, 3), strides=(2, 2), padding='same')(x)
-x = ConvolutionBlock(64,(1,1),strides=(1,1),padding='same',name='Conv2a')(x)
-x = ConvolutionBlock(192,(3,3),strides=(1,1),padding='same',name='Conv2b')(x)
-x = tf.keras.layers.MaxPooling2D((3, 3), strides=(2, 2), padding='same')(x)
-x = InceptionV1Block([64,96,128,16,32,32],name='Inception3a')(x) # 3a
-x = SEPBlock(name='SEP3a')(x)  # 3a
-x = InceptionV1Block([128,128,192,32,96,64],name='Inception3b')(x) # 3b
-x = SEPBlock(name='SEP3b')(x) # 3b
-x = tf.keras.layers.MaxPooling2D((3, 3), strides=(2, 2), padding='same')(x)
-x = InceptionV1Block([192,96,208,6,48,64],name='Inception4a')(x) # 4a
-x = SEPBlock(name='SEP4a')(x) # 4a
-x = InceptionV1Block([160,112,224,24,64,64],name='Inception4b')(x) # 4b
-_4bx = SEPBlock(name='SEP4b')(x) # 4b
-x = InceptionV1Block([128,128,256,24,64,64],name='Inception4c')(_4bx) # 4c
-_4cx = SEPBlock(name='SEP4c')(x) # 4c
-x = InceptionV1Block([112,144,288,32,64,64],name='Inception4d')(_4cx) # 4d
-x = SEPBlock(name='SEP4d')(x) # 4d
-x = InceptionV1Block([256,160,320,32,128,128],name='Inception4e')(x) # 4e
-x = SEPBlock(name='SEP4e')(x) # 4e
-x = tf.concat([x,_4bx,_4cx],axis=-1)
-x = tf.keras.layers.MaxPooling2D((3, 3), strides=(2, 2), padding='same')(x)
-x = tf.keras.layers.GlobalAveragePooling2D()(x)
-x = tf.keras.layers.Dense(2,activation='softmax',name='classifier')(x)
-model = tf.keras.Model(inputs=Inputs, outputs=x)
-model.summary()
+# Unit test 
+# model =get_model(2)
