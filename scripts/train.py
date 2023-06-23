@@ -47,9 +47,9 @@ if __name__ == '__main__':
             dst = os.path.join(val_dir, class_name, image)
             shutil.move(src, dst)
     def walk_through_dir(dir_path):
-    for dirpath , dirnames , filenames in os.walk(dir_path):
-        print(f'There are {len(dirnames)} directories and {len(filenames)} in {dirpath}')
-    walk_through_dir('/content/drive/MyDrive/BACH-dataset')
+        for dirpath , dirnames , filenames in os.walk(dir_path):
+            print(f'There are {len(dirnames)} directories and {len(filenames)} in {dirpath}')
+        walk_through_dir('/content/drive/MyDrive/BACH-dataset')
 
     # Base directory containing the image data
 
