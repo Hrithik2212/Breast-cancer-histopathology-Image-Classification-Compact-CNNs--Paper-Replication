@@ -71,7 +71,15 @@ class SEPBlock(tf.keras.layers.Layer):
         x_pruned = self.pruning_block([x, x_stat])
         output = inputs + x_pruned
         return output
+    
 def get_model(outputs:int=2)->tf.keras.Model:
+    METRICS = [
+    'accuracy',
+    tf.keras.metrics.Precision(name='precision'),
+    tf.keras.metrics.Recall(name='recall'),
+    tf.keras.metrics.AUC(name='AUC'),
+    ]
+
     Inputs = tf.keras.Input(shape=(224,224,3))
     x = ConvolutionBlock(64,(7,7),(2,2),padding='same' , name = 'Conv1')(Inputs)
     x = tf.keras.layers.MaxPooling2D((3, 3), strides=(2, 2), padding='same')(x)
@@ -96,9 +104,19 @@ def get_model(outputs:int=2)->tf.keras.Model:
     x = tf.concat([x,_4bx,_4cx],axis=-1)
     x = tf.keras.layers.MaxPooling2D((3, 3), strides=(2, 2), padding='same')(x)
     x = tf.keras.layers.GlobalAveragePooling2D()(x)
+    x = tf.keras.layers.Dropout(0.4)(x)
     x = tf.keras.layers.Dense(outputs,activation='softmax',name='classifier')(x)
     model = tf.keras.Model(inputs=Inputs, outputs=x)
-    model.summary()
+    learning_rate = 0.001
+    beta_1 = 0.9
+    beta_2 = 0.999
+    epsilon = 1e-7
 
+    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=beta_1, beta_2=beta_2, epsilon=epsilon)
+
+    model.compile(optimizer=optimizer, loss="categorical_crossentropy", metrics=METRICS)
+
+    model.summary()
+    return model
 # Unit test 
 # model =get_model(2)
